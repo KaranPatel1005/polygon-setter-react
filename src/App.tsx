@@ -28,12 +28,24 @@ const customIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+// Define the red icon for polygon points
+const redIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon-2x.png",
+  iconSize: [10, 16],
+  iconAnchor: [6, 16],
+  popupAnchor: [1, -20],
+});
+
 interface Coordinates {
   lat: number;
   lng: number;
 }
 
 const defaultCoordinates: Coordinates = { lat: 51.4998819, lng: -0.0992492 };
+
+const POLYGON_THRESHOLD: number = 20;
 
 const App: FC = () => {
   const { toast } = useToast();
@@ -87,16 +99,18 @@ const App: FC = () => {
       click(event) {
         // Check if the click is within the circle radius
         const distance = L.latLng(event.latlng).distanceTo(center);
-        if (polygonCoordinates.length < 5 && distance <= radiusLimit) {
+        if (
+          polygonCoordinates.length < POLYGON_THRESHOLD &&
+          distance <= radiusLimit
+        ) {
           setPolygonCoordinates([
             ...polygonCoordinates,
             [event.latlng.lat, event.latlng.lng],
           ]);
-        } else if (polygonCoordinates.length >= 5) {
+        } else if (polygonCoordinates.length >= POLYGON_THRESHOLD) {
           toast({
             variant: "destructive",
-            title:
-              'Polygon can only have 5 points. Click "Undo Last Point" to adjust.',
+            title: `Polygon can only have ${POLYGON_THRESHOLD} points. Click "Undo Last Point" to adjust.`,
           });
         } else {
           toast({
@@ -124,13 +138,13 @@ const App: FC = () => {
 
   // Send the polygon data to the backend
   const handleSavePolygon = async () => {
-    if (polygonCoordinates.length !== 5) {
-      toast({
-        variant: "destructive",
-        title: "Set polygon with 5 points",
-      });
-      return;
-    }
+    // if (polygonCoordinates.length !== 5) {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Set polygon with 5 points",
+    //   });
+    //   return;
+    // }
 
     // Check if the store center is inside the polygon
     if (!isCenterInsidePolygon()) {
@@ -148,6 +162,8 @@ const App: FC = () => {
     }));
 
     try {
+      console.log("🚀 ~ center:", center);
+
       console.log("🚀 ~ hanleSavePolygon ~ boundry:", boundary);
       toast({
         title: "Success! Store saved.",
@@ -210,7 +226,14 @@ const App: FC = () => {
 
           {/* Draw polygon with selected coordinates */}
           {polygonCoordinates.length > 0 && (
-            <Polygon positions={polygonCoordinates} color="blue" />
+            <>
+              <Polygon positions={polygonCoordinates} color="blue" />
+              {polygonCoordinates.map((point, index) => (
+                <Marker key={index} position={point} icon={redIcon}>
+                  <Popup>Point {index + 1}</Popup>
+                </Marker>
+              ))}
+            </>
           )}
         </MapContainer>
         <div className="flex gap-2 w-full my-3">
